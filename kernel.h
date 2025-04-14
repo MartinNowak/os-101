@@ -75,5 +75,9 @@ struct process {
     uint8_t stack[8192]; // Kernel stack
 };
 
+struct process *current_proc; // Currently running process
+struct process *idle_proc;    // Idle process
+
 void switch_context(uint32_t *prev_sp, uint32_t *next_sp);
 struct process *create_process(uint32_t pc);
+void yield(void);

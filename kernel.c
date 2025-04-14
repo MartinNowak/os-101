@@ -55,8 +55,7 @@ void proc_a_entry(void) {
     printf("starting process A\n");
     while (1) {
         putchar('A');
-        switch_context(&proc_a->sp, &proc_b->sp);
-        delay();
+        yield();
     }
 }
 
@@ -64,8 +63,7 @@ void proc_b_entry(void) {
     printf("starting process B\n");
     while (1) {
         putchar('B');
-        switch_context(&proc_b->sp, &proc_a->sp);
-        delay();
+        yield();
     }
 }
 
@@ -74,11 +72,15 @@ void kernel_main(void) {
 
     WRITE_CSR(stvec, (uint32_t) kernel_entry);
 
+    idle_proc = create_process((uint32_t) NULL);
+    idle_proc->pid = 0; // idle
+    current_proc = idle_proc;
+
     proc_a = create_process((uint32_t) proc_a_entry);
     proc_b = create_process((uint32_t) proc_b_entry);
-    proc_a_entry();
 
-    PANIC("unreachable here!");
+    yield();
+    PANIC("switched to idle process");
 }
 
 __attribute__((section(".text.boot")))
@@ -260,4 +262,28 @@ struct process *create_process(uint32_t pc) {
     proc->state = PROC_RUNNABLE;
     proc->sp = (uint32_t) sp;
     return proc;
+}
+
+struct process *current_proc; // Currently running process
+struct process *idle_proc;    // Idle process
+
+void yield(void) {
+    // Search for a runnable process
+    struct process *next = idle_proc;
+    for (int i = 0; i < PROCS_MAX; i++) {
+        struct process *proc = &procs[(current_proc->pid + i) % PROCS_MAX];
+        if (proc->state == PROC_RUNNABLE && proc->pid > 0) {
+            next = proc;
+            break;
+        }
+    }
+
+    // If there's no runnable process other than the current one, return and continue processing
+    if (next == current_proc)
+        return;
+
+    // Context switch
+    struct process *prev = current_proc;
+    current_proc = next;
+    switch_context(&prev->sp, &next->sp);
 }
