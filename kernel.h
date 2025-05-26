@@ -80,7 +80,7 @@ struct process *current_proc; // Currently running process
 struct process *idle_proc;    // Idle process
 
 void switch_context(uint32_t *prev_sp, uint32_t *next_sp);
-struct process *create_process(uint32_t pc);
+struct process *create_process(const void *image, size_t image_size);
 void yield(void);
 
 // https://operating-system-in-1000-lines.vercel.app/en/11-page-table#constructing-the-page-table
@@ -92,3 +92,12 @@ void yield(void);
 #define PAGE_U    (1 << 4)   // User (accessible in user mode)
 
 void map_page(uint32_t *table1, vaddr_t vaddr, paddr_t paddr, uint32_t flags);
+
+
+// https://operating-system-in-1000-lines.vercel.app/en/13-user-mode
+// The base virtual address of an application image. This needs to match the
+// starting address defined in `user.ld`.
+#define USER_BASE 0x1000000
+void user_entry(void);
+
+#define SSTATUS_SPIE (1 << 5)
