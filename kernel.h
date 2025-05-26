@@ -72,6 +72,7 @@ struct process {
     int pid;             // Process ID
     int state;           // Process state: PROC_UNUSED or PROC_RUNNABLE
     vaddr_t sp;          // Stack pointer
+    uint32_t *page_table; // Page Tables
     uint8_t stack[8192]; // Kernel stack
 };
 
@@ -81,3 +82,13 @@ struct process *idle_proc;    // Idle process
 void switch_context(uint32_t *prev_sp, uint32_t *next_sp);
 struct process *create_process(uint32_t pc);
 void yield(void);
+
+// https://operating-system-in-1000-lines.vercel.app/en/11-page-table#constructing-the-page-table
+#define SATP_SV32 (1u << 31)
+#define PAGE_V    (1 << 0)   // "Valid" bit (entry is enabled)
+#define PAGE_R    (1 << 1)   // Readable
+#define PAGE_W    (1 << 2)   // Writable
+#define PAGE_X    (1 << 3)   // Executable
+#define PAGE_U    (1 << 4)   // User (accessible in user mode)
+
+void map_page(uint32_t *table1, vaddr_t vaddr, paddr_t paddr, uint32_t flags);
